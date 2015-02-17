@@ -1,0 +1,31 @@
+import numpy as np
+import math
+class NN:
+    def __init__(self,inputLayer,hiddenLayer,outputLayer):
+        self.il = inputLayer
+        self.hl = hiddenLayer
+        self.ol = outputLayer
+
+        
+
+    def forward(self,input,target):
+        for attr in input
+            self.io * attr
+        
+        
+    def train(self,data,iteration=1000)
+        self.whl = np.random.uniform(-1 * 2/data.length,2/len(data),[self.il,self.hl])
+        self.wol = np.random.uniform(-1 * 2/data.length,2/len(data),[self.hl,self.ol])
+
+        self.io = np.zeros(len(data))
+        self.ho = np.zeros(self.hl)
+        self.oo = np.zeros(self.ol)
+
+        for i in range(iteration):
+            for datum in range(len(data)):
+                input = datum[0]
+                target = datum[1]
+                self.forward(input,target)
+
+    def sigmoid(x):
+        return 1 / (1 + math.exp(-x))
