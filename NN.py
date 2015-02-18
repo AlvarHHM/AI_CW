@@ -27,8 +27,15 @@ class NN:
                 sum = sum + self.wol[j,i] * self.ho[j]
             self.oo[i] = self.sigmoid(sum)
 
-    def backward(self):
-        print ''
+    def backward(self,input,target):
+        #only work when there is only one output
+        o_delta = (target - self.oo[0]) * self.activation(self.oo[0])
+        for j in range(self.hl+1):
+            self.wol[j, 0] += self.alpha * o_delta * self.oo[0]
+
+        for i in range(self.hl):
+            h_delta = self.wol[i+1,0] *  o_delta * self.activation(self.ho[i])
+            self.whl += self.alpha * h_delta * self.ho[i]
         
     def train(self,data,iteration=1000):
         self.whl = np.random.uniform(-1 * 2/data.length,2/len(data),[self.il+1,self.hl])
@@ -43,6 +50,9 @@ class NN:
                 input = datum[0]
                 target = datum[1]
                 self.forward(input,target)
+
+    def activation(x):
+        return x * (1-x)
 
     def sigmoid(x):
         return 1 / (1 + math.exp(-x))
