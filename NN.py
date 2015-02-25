@@ -16,15 +16,15 @@ class NN:
             #bias
             sum = sum + self.whl[0,i]
             for j in range(1,self.il+1):
-                sum = sum + self.whl[j,i] * input[j]
+                sum = sum + self.whl[j,i] * input[j-1]
             self.ho[i] = self.sigmoid(sum)
 
         for i in range(self.ol):
             sum = 0
             #bias
             sum = sum + self.wol[0,i]
-            for j in range(1,self.ho+1):
-                sum = sum + self.wol[j,i] * self.ho[j]
+            for j in range(1,self.hl+1):
+                sum = sum + self.wol[j,i] * self.ho[j-1]
             self.oo[i] = self.sigmoid(sum)
 
     def backward(self,input,target):
@@ -47,16 +47,15 @@ class NN:
 
         for i in range(iteration):
             for datum in data:
-                print data
                 input = datum[0]
                 target = datum[1]
                 self.forward(input,target)
                 self.backward(input,target)
 
-    def activation(x):
+    def activation(self,x):
         return x * (1-x)
 
-    def sigmoid(x):
+    def sigmoid(self,x):
         return 1 / (1 + math.exp(-x))
 def demo():
     pat = [
