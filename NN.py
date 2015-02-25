@@ -38,21 +38,41 @@ class NN:
             self.whl += self.alpha * h_delta * self.ho[i]
         
     def train(self,data,iteration=1000):
-        self.whl = np.random.uniform(-1 * 2/data.length,2/len(data),[self.il+1,self.hl])
-        self.wol = np.random.uniform(-1 * 2/data.length,2/len(data),[self.hl+1,self.ol])
+        self.whl = np.random.uniform(-1 * 2/len(data),2/len(data),[self.il+1,self.hl])
+        self.wol = np.random.uniform(-1 * 2/len(data),2/len(data),[self.hl+1,self.ol])
 
         self.io = np.zeros(len(data))
         self.ho = np.zeros(self.hl)
         self.oo = np.zeros(self.ol)
 
         for i in range(iteration):
-            for datum in range(len(data)):
+            for datum in data:
+                print data
                 input = datum[0]
                 target = datum[1]
                 self.forward(input,target)
+                self.backward(input,target)
 
     def activation(x):
         return x * (1-x)
 
     def sigmoid(x):
         return 1 / (1 + math.exp(-x))
+def demo():
+    pat = [
+        [[0,0], [0]],
+        [[0,1], [1]],
+        [[1,0], [1]],
+        [[1,1], [0]]
+    ]
+
+    n = NN(2, 2, 1)
+    # train it with some patterns
+    n.train(pat)
+    # test it
+    #n.test(pat)
+
+
+
+if __name__ == '__main__':
+    demo()
