@@ -78,7 +78,8 @@ class NN:
             sum = 0.0
             for j in range(self.nh):
                 sum = sum + self.ah[j] * self.wo[j][k]
-            self.ao[k] = sigmoid(sum)
+            # self.ao[k] = sigmoid(sum)
+            self.ao[k] = (sum)
 
         return self.ao[:]
 

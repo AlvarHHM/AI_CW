@@ -4,18 +4,22 @@ import matplotlib.pyplot as plt
 import csv
 
 
+
+
 class NN:
     def __init__(self, input_layer, hidden_layer):
         self.il = input_layer
         self.hl = hidden_layer
         self.ihw = np.random.uniform(-1 * 2.0 / input_layer, 2.0 / input_layer, (self.il + 1, self.hl))
         self.how = np.random.uniform(-1 * 2.0 / hidden_layer, 2.0 / hidden_layer, (self.hl + 1))
+        # self.ihw = np.zeros((self.il + 1, self.hl), dtype=np.float128)
+        # self.how = np.zeros((self.hl + 1), dtype=np.float128)
         self.ihwc = np.zeros((self.il + 1, self.hl))
         self.howc = np.zeros((self.hl + 1))
         print self.ihw
         print self.how
-        self.learning_rate = 0.2
-        self.momentum = 0.9
+        self.learning_rate = 0.1
+        self.momentum = 0.0
 
     def forward(self, train_data):
 
@@ -33,15 +37,16 @@ class NN:
         output_sum += self.how[-1]
         for hidden_neuron in range(self.hl):
             output_sum += hidden_neuron_output[hidden_neuron] * self.how[hidden_neuron]
-        output_neuron_output = self.sigmoid(output_sum)
+        # output_neuron_output = self.sigmoid(output_sum)
+        output_neuron_output = (output_sum)
 
         return input_neuron_output, hidden_neuron_output, output_neuron_output
 
     def backward(self, train_output, target):
-        output_delta = (target - train_output[2]) * self.activation(train_output[2])
+        output_delta = (target - train_output[2]) * (self.dsigmoid(train_output[2]))
         hidden_delta = np.zeros(self.hl)
         for j in range(self.hl):
-            hidden_delta[j] = self.how[j] * output_delta * self.activation(train_output[1][j])
+            hidden_delta[j] = self.how[j] * output_delta * self.dsigmoid(train_output[1][j])
 
         # update weight from hidden to output
         # update bias weight
@@ -72,7 +77,7 @@ class NN:
             for datum in data:
                 output = self.forward(datum[0])
                 error += self.backward(output, datum[1])
-            if i % 1 == 0:
+            if i % 100 == 0:
                 err_arr.append(error)
                 print error
         fig = plt.figure()
@@ -84,21 +89,33 @@ class NN:
         np.save("ihw", self.ihw)
         np.save("how", self.how)
 
-    def test(self, data):
-        for datum in data:
-            print(datum[0], " -> ", self.forward(datum[0]))
-        print self.ihw
-        print self.how
+    def test(self, test_set):
+        err_arr = []
+        for datum in test_set:
+            error = (datum[1] - self.forward(datum[0])) ** 2
+            err_arr.append(error)
+        return math.sqrt(reduce(lambda x, y: x + y, err_arr) / len(err_arr))
+
 
     @staticmethod
-    def activation(x):
+    def dsigmoid(x):
         # return 1.0 - x ** 2
-        return x * (1 - x)
+        ans = x * (1 - x)
+        return ans
 
     @staticmethod
     def sigmoid(x):
         # return math.tanh(x)
-        return 1 / (1 + math.exp(-x))
+        # return 1 / (1 + math.exp(-x))
+        # ans = 1/2*(1+math.tanh(x/2))
+        return 0.5*(1.+math.tanh(x/2.))
+        # try:
+        #     return 1 / (1 + math.exp(-x))
+        # except OverflowError:
+        #     if x > 0:
+        #         return 1
+        #     else:
+        #         return 0
 
 
 def demo():
@@ -126,11 +143,12 @@ def readDataFromFile(file):
 
 
 def main():
-    data = readDataFromFile('TestData.csv')
-    n = NN(8, 5)
+    np.seterr(over='raise')
+    data = readDataFromFile('CWDatav6.csv')
+    n = NN(8, 3)
     # print data
     n.train(data)
 
 
 if __name__ == '__main__':
-    demo()
+    main()
