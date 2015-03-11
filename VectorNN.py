@@ -5,7 +5,7 @@ import csv
 
 
 class NN:
-    def __init__(self, input_layer, hidden_layer, output_layer=1):
+    def __init__(self, input_layer, hidden_layer, output_layer=2):
         self.weight = [[], []]
         self.weight[0] = np.random.uniform(-1 * 2.0 / input_layer, 2.0 / input_layer,
                                            (hidden_layer, input_layer + 1))
@@ -31,9 +31,9 @@ class NN:
     def backward(self, train_output, target):
         input_neuron_output, hidden_neuron_output, output_neuron_output = train_output
         output_delta = (target - output_neuron_output)
-        hidden_delta = self.weight[1].transpose() .dot(output_delta) .dot(self.dsigmoid(hidden_neuron_output))
-        self.weight[1] += self.learning_rate * output_delta * hidden_neuron_output
-        self.weight[0] += self.learning_rate * hidden_delta * input_neuron_output
+        hidden_delta = self.weight[1].transpose() .dot(output_delta) * (self.dsigmoid(hidden_neuron_output))
+        self.weight[1] += hidden_neuron_output.dot(self.learning_rate * output_delta)
+        self.weight[0] += input_neuron_output.dot(self.learning_rate * hidden_delta)
         1==1
         # output_delta = (target - train_output[2]) * (self.dsigmoid(train_output[2]))
         # hidden_delta = np.zeros(self.hl)
@@ -116,10 +116,10 @@ class NN:
 
 def demo():
     pat = [
-        ((0, 0), 0),
-        ((0, 1), 1),
-        ((1, 0), 1),
-        ((1, 1), 0)
+        ((0, 0), (0, 0)),
+        ((0, 1), (1, 1)),
+        ((1, 0), (1, 1)),
+        ((1, 1), (0, 0))
     ]
     n = NN(2, 5)
     # train it with some patterns
