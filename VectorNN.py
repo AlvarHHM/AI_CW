@@ -18,20 +18,23 @@ class NN:
 
     def forward(self, train_data):
         input_neuron_output = np.matrix(train_data).transpose().getA()
+        input_neuron_output = np.append([[1]], input_neuron_output, axis=0)
 
-        z = np.dot(self.weight[0], np.append([[1]], input_neuron_output, axis=0))
+        z = np.dot(self.weight[0], input_neuron_output)
         hidden_neuron_output = self.sigmoid(z)
+        hidden_neuron_output = np.append([[1]], hidden_neuron_output, axis=0)
 
-        z = np.dot(self.weight[1], np.append([[1]], hidden_neuron_output, axis=0))
+        z = np.dot(self.weight[1], hidden_neuron_output)
         output_neuron_output = self.sigmoid(z)
         return input_neuron_output, hidden_neuron_output, output_neuron_output
 
     def backward(self, train_output, target):
         input_neuron_output, hidden_neuron_output, output_neuron_output = train_output
         output_delta = (target - output_neuron_output)
-        hidden_delta = self.weight[0].transpose() * output_delta * self.dsigmoid(hidden_neuron_output)
+        hidden_delta = self.weight[1].transpose() .dot(output_delta) .dot(self.dsigmoid(hidden_neuron_output))
         self.weight[1] += self.learning_rate * output_delta * hidden_neuron_output
         self.weight[0] += self.learning_rate * hidden_delta * input_neuron_output
+        1==1
         # output_delta = (target - train_output[2]) * (self.dsigmoid(train_output[2]))
         # hidden_delta = np.zeros(self.hl)
         # for j in range(self.hl):
