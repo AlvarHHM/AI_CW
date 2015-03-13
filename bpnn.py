@@ -6,7 +6,6 @@
 
 import math
 import random
-import csv
 import string
 
 random.seed(0)
@@ -78,8 +77,7 @@ class NN:
             sum = 0.0
             for j in range(self.nh):
                 sum = sum + self.ah[j] * self.wo[j][k]
-            # self.ao[k] = sigmoid(sum)
-            self.ao[k] = (sum)
+            self.ao[k] = sigmoid(sum)
 
         return self.ao[:]
 
@@ -137,7 +135,7 @@ class NN:
         for j in range(self.nh):
             print(self.wo[j])
 
-    def train(self, patterns, iterations=10000, N=0.5, M=0.1):
+    def train(self, patterns, iterations=10000, N=0.1, M=0.0):
         # N: learning rate
         # M: momentum factor
         for i in range(iterations):
@@ -161,26 +159,13 @@ def demo():
     ]
 
     # create a network with two input, two hidden, and one output nodes
-    n = NN(2, 2, 1)
+    n = NN(2, 3, 1)
     # train it with some patterns
     n.train(pat)
     # test it
     n.test(pat)
 
-def readDataFromFile(file):
-    data = []
-    with open(file, 'rbU') as csvfile:
-        spamreader = csv.reader(csvfile, dialect=csv.excel_tab)
-        for row in spamreader:
-            row_data = [float(x) for x in row[0].split(',')]
-            data.append([row_data[:-1], [row_data[-1]]])
-    return data
 
-
-def main():
-    data = readDataFromFile('TestData.csv')
-    n = NN(8, 3, 1)
-    n.train(data)
 
 if __name__ == '__main__':
-    main()
+    demo()

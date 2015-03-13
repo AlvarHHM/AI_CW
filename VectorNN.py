@@ -2,19 +2,28 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import csv
+import os
+import multiprocessing
 
 
 class NN:
-    def __init__(self, input_layer, hidden_layer, output_layer=2):
+    def __init__(self, input_layer, hidden_layer, output_layer, iteration=1000, learning_rate=0.1, momentum=0.9,
+                 show_progress_err=False, load_weight=False):
+        self.iteration = iteration
+        self.learning_rate = learning_rate
+        self.momentum = momentum
+        self.show_progress_err = show_progress_err
         self.weight = [[], []]
-        self.weight[0] = np.random.uniform(-1 * 2.0 / input_layer, 2.0 / input_layer,
-                                           (hidden_layer, input_layer + 1))
-        self.weight[1] = np.random.uniform(-1 * 2.0 / hidden_layer, 2.0 / hidden_layer,
-                                           (output_layer, hidden_layer + 1))
-        self.ihwc = np.zeros((input_layer, hidden_layer + 1))
-        self.howc = np.zeros((hidden_layer, output_layer + 1))
-        self.learning_rate = 0.1
-        self.momentum = 0.0
+        self.weight_change = [[], []]
+        if load_weight & os.path.exists("weight.npy"):
+            self.weight = np.load("weight.npy")
+        else:
+            self.weight[0] = np.random.uniform(-1 * 2.0 / input_layer, 2.0 / input_layer,
+                                               (hidden_layer, input_layer + 1))
+            self.weight[1] = np.random.uniform(-1 * 2.0 / hidden_layer, 2.0 / hidden_layer,
+                                               (output_layer, hidden_layer + 1))
+        self.weight_change[0] = np.zeros((hidden_layer, input_layer + 1))
+        self.weight_change[1] = np.zeros((output_layer, hidden_layer + 1))
 
     def forward(self, train_data):
         input_neuron_output = np.matrix(train_data).transpose().getA()
@@ -28,70 +37,40 @@ class NN:
         output_neuron_output = self.sigmoid(z)
         return input_neuron_output, hidden_neuron_output, output_neuron_output
 
-    def backward(self, train_output, target):
+    def backward(self, train_output, target, learning_rate=0.1, momentum=0.9):
         input_neuron_output, hidden_neuron_output, output_neuron_output = train_output
-        output_delta = (target - output_neuron_output)
-        hidden_delta = self.weight[1].transpose() .dot(output_delta) * (self.dsigmoid(hidden_neuron_output))
-        self.weight[1] += hidden_neuron_output.dot(self.learning_rate * output_delta)
-        self.weight[0] += input_neuron_output.dot(self.learning_rate * hidden_delta)
-        1==1
-        # output_delta = (target - train_output[2]) * (self.dsigmoid(train_output[2]))
-        # hidden_delta = np.zeros(self.hl)
-        # for j in range(self.hl):
-        #     hidden_delta[j] = self.how[j] * output_delta * self.dsigmoid(train_output[1][j])
-        #
-        # # update weight from hidden to output
-        # # update bias weight
-        # self.how[-1] += self.learning_rate * output_delta
-        # self.howc[-1] = self.learning_rate * output_delta
-        # for j in range(self.hl):
-        #     self.how[j] += self.learning_rate * output_delta * train_output[1][j] \
-        #                    + self.momentum * self.howc[j]
-        #     self.howc[j] = self.learning_rate * output_delta * train_output[1][j]
-        #
-        # # update weight from input to hidden
-        # for j in range(self.hl):
-        #     # update bias weight
-        #     self.ihw[-1, j] += self.learning_rate * hidden_delta[j]
-        #     self.ihwc[-1, j] = self.learning_rate * hidden_delta[j]
-        #     for i in range(self.il):
-        #         self.ihw[i, j] += self.learning_rate * hidden_delta[j] * train_output[0][i] \
-        #                           + self.momentum * self.ihwc[i, j]
-        #         self.ihwc[i, j] = self.learning_rate * hidden_delta[j] * train_output[0][i]
-        #
-        # # return calculate error
-        # return (target - train_output[2]) ** 2
+        output_delta = (np.matrix(target).transpose().getA() - output_neuron_output)
+        hidden_delta = self.weight[1].transpose().dot(output_delta) * (self.dsigmoid(hidden_neuron_output))
 
-    def train(self, data, iteration=10000):
+        change = output_delta * np.matrix(hidden_neuron_output).transpose()
+        self.weight[1] += learning_rate * change + momentum * self.weight_change[1]
+        self.weight_change[1] = change
+
+        change = hidden_delta[1:] * np.matrix(input_neuron_output).transpose()
+        self.weight[0] += learning_rate * change + momentum * self.weight_change[0]
+        self.weight_change[0] = change
+        return output_delta
+
+    def train(self, data):
         err_arr = []
-        for i in range(iteration):
+        for i in range(self.iteration):
             error = 0.0
             for datum in data:
                 output = self.forward(datum[0])
-                error += self.backward(output, datum[1])
-            if i % 100 == 0:
-                err_arr.append(error)
-                print error
-        fig = plt.figure()
-        ax = fig.add_subplot(1, 1, 1)
-        ax.set_yscale('log')
-        ax.plot(err_arr)
-        plt.show()
-
-        np.save("ihw", self.ihw)
-        np.save("how", self.how)
+                error += self.backward(output, datum[1], self.learning_rate, self.momentum)
+            error = np.matrix(error).getA1() ** 2
+            err_arr.append(error[0])
+            if self.show_progress_err:
+                print "error at " + str(i) + " iteration: " + str(error)
+        np.save("weight", self.weight)
+        return err_arr
 
     def test(self, test_set):
         err_arr = []
         for datum in test_set:
-            error = (datum[1] - self.forward(datum[0])) ** 2
+            error = (datum[1] - self.forward(datum[0])[2][0]) ** 2
             err_arr.append(error)
         return math.sqrt(reduce(lambda x, y: x + y, err_arr) / len(err_arr))
-
-
-    @staticmethod
-    def matrix_multi(x, y):
-        return (x[:, :, None] * y).sum(axis=1)
 
     @staticmethod
     def dsigmoid(x):
@@ -101,50 +80,98 @@ class NN:
 
     @staticmethod
     def sigmoid(x):
-        # return math.tanh(x)
-        # return 1 / (1 + math.exp(-x))
-        # ans = 1/2*(1+math.tanh(x/2))
-        return 0.5 * (1. + np.tanh(x / 2.))
-        # try:
-        # return 1 / (1 + math.exp(-x))
-        # except OverflowError:
-        #     if x > 0:
-        #         return 1
-        #     else:
-        #         return 0
+        return 1 / (1 + np.exp(-x))
 
 
-def demo():
-    pat = [
-        ((0, 0), (0, 0)),
-        ((0, 1), (1, 1)),
-        ((1, 0), (1, 1)),
-        ((1, 1), (0, 0))
-    ]
-    n = NN(2, 5)
-    # train it with some patterns
-    n.train(pat)
-    # test it
-    # n.test(pat)
+class LR:
+    def __init__(self):
+        self.input_matrix = []
+        self.target_matrix = []
+        self.weight = []
+        return
 
+    def train(self, data_set):
+        self.input_matrix = np.matrix([np.append([1, ], x[0]) for x in data_set])
+        self.target_matrix = np.matrix([x[1] for x in data_set]).transpose()
+        self.weight = (self.input_matrix.transpose() * self.input_matrix).getI() \
+            * self.input_matrix.transpose() * self.target_matrix
+        return []
 
-def readDataFromFile(file):
-    data = []
-    with open(file, 'rbU') as csvfile:
-        spamreader = csv.reader(csvfile, dialect=csv.excel_tab)
-        for row in spamreader:
-            row_data = [float(x) for x in row[0].split(',')]
-            data.append((row_data[:-1], row_data[-1]))
-    return data
+    def test(self, data_set):
+        self.input_matrix = np.matrix([np.append([1, ], x[0]) for x in data_set])
+        self.target_matrix = np.matrix([x[1] for x in data_set]).transpose()
+        return (self.target_matrix - (self.input_matrix * self.weight)).mean()
 
 
 def main():
     np.seterr(over='raise')
-    data = readDataFromFile('CWDatav6.csv')
-    n = NN(8, 3)
-    # print data
-    n.train(data)
+    data = read_data_set('CWDatav6.csv')
+    nn_learn_provider = lambda: NN(8, 5, 1, iteration=100, learning_rate=0.1, momentum=0.9, load_weight=False)
+    lr_learn_provider = lambda: LR()
+    # multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
+    multiprocessing.Process(target=k_fold_val, args=(nn_learn_provider, data, 10)).start()
+    # multiprocessing.Process(target=split_set_val, args=(lr_learn_provider, data, 25)).start()
+    # multiprocessing.Process(target=k_fold_val, args=(lr_learn_provider, data, 10)).start()
 
+    # split_set_val(learn_provider, data, split_percent=25)
+    # k_fold_val(learn_provider, data, fold=10)
+
+
+def split_set_val(learn_provider, data_set, split_percent=25):
+    network = learn_provider()
+    np.random.shuffle(data_set)
+    train_set = data_set[int(len(data_set) * (split_percent / 100.0)):]
+    test_set = data_set[:int(len(data_set) * (split_percent / 100.0))]
+    progress_err = network.train(train_set)
+    print "Error on test set:  " + str(network.test(test_set))
+    if len(progress_err) != 0:
+        job_for_another_core = multiprocessing.Process(target=plot_learning_rate, args=(progress_err,))
+        job_for_another_core.start()
+
+
+def k_fold_val(learn_provider, data_set, fold=10):
+    error = 0
+    for i in range(0, fold):
+        network = learn_provider()
+        train_set = [data_set[index] for index in range(len(data_set)) if ((index - i) % fold) != 0]
+        test_set = data_set[i::fold]
+        network.train(train_set)
+        error += network.test(test_set)
+    print "Average error on K-fold: " + str(error / fold)
+
+
+def plot_learning_rate(err_arr):
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    ax.set_yscale('log')
+    plt.title("Error against iteration")
+    plt.ylabel("Square error")
+    plt.xlabel("Iteration")
+    ax.plot(err_arr)
+    plt.show()
+
+
+def read_data_set(input_file):
+    data = []
+    with open(input_file, 'rbU') as csv_file:
+        reader = csv.reader(csv_file, dialect=csv.excel_tab)
+        for row in reader:
+            row_data = [float(x) for x in row[0].split(',')]
+            data.append((row_data[:-1], row_data[-1]))
+    return data
+
+def demo():
+    pat = [
+        [[0, 0], [0]],
+        [[0, 1], [1]],
+        [[1, 0], [1]],
+        [[1, 1], [0]]]
+
+    n = NN(2, 3, 1, iteration=1000)
+    # train it with some patterns
+    n.train(pat)
+    # test it
+    print n.test(pat)
 
 if __name__ == '__main__':
     demo()
