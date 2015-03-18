@@ -79,10 +79,11 @@ class NN:
             val_err_err.append(self.test(val_set))
             if self.early_stop and i > 0:
                 pq = (100 * (val_err_err[-1] / np.min(val_err_err) - 1)) \
-                    / 1 * ((np.sum(train_err_arr[-100:]) / (100 * np.min(train_err_arr[-100:]))) - 1)
+                    / 1 * ((np.sum(train_err_arr[-10:]) / (10 * np.min(train_err_arr[-100:]))) - 1)
+                print "%d: %f " % (i, pq),
                 if pq > 0:
                     print "%d: %f " % (i, pq),
-                    break
+                    # break
             if self.show_progress_err:
                 print "error at " + str(i) + " iteration: " + str(error)
         np.save("weight", self.weight)
@@ -145,10 +146,10 @@ class LR:
 def main():
     np.seterr(over='raise')
     data = read_data_set('CWDatav6.csv')
-    nn_learn_provider = lambda: NN(8, 5, 1, iteration=2000, bold_driver=True, early_stop=True)
+    nn_learn_provider = lambda: NN(8, 5, 1, iteration=10000, bold_driver=True, early_stop=True)
     multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
-    nn_learn_provider = lambda: NN(8, 5, 1, iteration=2000, bold_driver=True, early_stop=False)
-    multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
+    # nn_learn_provider = lambda: NN(8, 5, 1, iteration=2000, bold_driver=True, early_stop=False)
+    # multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
     # nn_learn_provider = lambda: NN(8, 5, 1, iteration=10000, learning_rate=0.1, momentum=0.9, load_weight=False)
     # multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
     # nn_learn_provider = lambda: NN(8, 5, 1, iteration=10000, learning_rate=0.1, momentum=0.9, load_weight=False)
