@@ -4,13 +4,15 @@ import matplotlib.pyplot as plt
 import csv
 import os
 import multiprocessing
+import random
 
 
 class NN:
     def __init__(self, input_layer, hidden_layer, output_layer, iteration=1000, learning_rate=0.1, momentum=0.9,
-                 show_progress_err=False, load_weight=False):
+                 show_progress_err=False, bold_driver=True, early_stop=True, load_weight=False):
         self.input_layer, self.hidden_layer, self.output_layer = input_layer, hidden_layer, output_layer
         self.iteration, self.learning_rate, self.momentum = iteration, learning_rate, momentum
+        self.bold_driver, self.early_stop = bold_driver, early_stop
         self.show_progress_err = show_progress_err
         self.weight = [[], []]
         self.weight_change = [[], []]
@@ -25,6 +27,8 @@ class NN:
                                                (output_layer, hidden_layer + 1))
         self.weight_change[0] = np.zeros((hidden_layer, input_layer + 1))
         self.weight_change[1] = np.zeros((output_layer, hidden_layer + 1))
+        self.backup_weight = self.weight
+        self.backup_weight_change = self.weight_change
 
     def forward(self, train_data):
         # output vector of layer 1 is input attribute
@@ -63,14 +67,22 @@ class NN:
                 output = self.forward(datum[0])
                 error += self.backward(output, datum[1], self.learning_rate, self.momentum) ** 2
             error = np.sqrt(np.matrix(error).getA1() / len(train_set))
+            if self.bold_driver:
+                if i > 0 and error > train_err_arr[-1]:
+                    self.learning_rate *= 0.5
+                    self.restore_snapshot()
+                    continue
+                else:
+                    self.learning_rate *= 1.1
+                    self.snapshot()
             train_err_arr.append(error[0])
             val_err_err.append(self.test(val_set))
-            # if i > 100:
-            #     pq = (100 * (val_err_err[-1] / np.min(val_err_err) - 1)) \
-            #         / 1 * ((np.sum(train_err_arr[-100:]) / (100 * np.min(train_err_arr[-100:]))) - 1)
-            #     if pq > 0:
-            #         print "%d: %f " % (i, pq),
-            #         break
+            if self.early_stop and i > 0:
+                pq = (100 * (val_err_err[-1] / np.min(val_err_err) - 1)) \
+                    / 1 * ((np.sum(train_err_arr[-100:]) / (100 * np.min(train_err_arr[-100:]))) - 1)
+                if pq > 0:
+                    print "%d: %f " % (i, pq),
+                    break
             if self.show_progress_err:
                 print "error at " + str(i) + " iteration: " + str(error)
         np.save("weight", self.weight)
@@ -83,9 +95,18 @@ class NN:
             err_arr.append(error)
         return math.sqrt(reduce(lambda x, y: x + y, err_arr) / len(err_arr))
 
+    def snapshot(self):
+        self.backup_weight = self.weight
+        self.backup_weight_change = self.weight_change
+
+    def restore_snapshot(self):
+        self.weight = self.backup_weight
+        self.weight_change = self.backup_weight_change
+
     def __str__(self):
-        return "NN with %d hidden, %d iteration, %0.3f rate, %0.3f momentum" % (self.hidden_layer, self.iteration,
-                                                                                self.learning_rate, self.momentum)
+        return "NN with %d hidden, %d iteration, %0.3f rate, %0.3f momentum, %r bold_driver, %r early stop" \
+               % (self.hidden_layer, self.iteration, self.learning_rate, self.momentum,
+                  self.bold_driver, self.early_stop)
 
     @staticmethod
     def dsigmoid(x):
@@ -124,7 +145,9 @@ class LR:
 def main():
     np.seterr(over='raise')
     data = read_data_set('CWDatav6.csv')
-    nn_learn_provider = lambda: NN(8, 5, 1, iteration=2000, learning_rate=0.1, momentum=0.9, load_weight=False)
+    nn_learn_provider = lambda: NN(8, 5, 1, iteration=2000, bold_driver=True, early_stop=True)
+    multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
+    nn_learn_provider = lambda: NN(8, 5, 1, iteration=2000, bold_driver=True, early_stop=False)
     multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
     # nn_learn_provider = lambda: NN(8, 5, 1, iteration=10000, learning_rate=0.1, momentum=0.9, load_weight=False)
     # multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
@@ -143,6 +166,7 @@ def main():
 
 
 def split_set_val(learn_provider, data_set, split_percent=25):
+    random.seed()
     network = learn_provider()
     np.random.shuffle(data_set)
     train_set = data_set[int(len(data_set) * (split_percent / 100.0)):]
@@ -180,7 +204,7 @@ def plot_learning_rate(train_set_err, val_set_err):
     plt.ylabel("Square error")
     plt.xlabel("Iteration")
     plt.plot(train_set_err, label="Training set error")
-    plt.plot(val_set_err, label="Validation set error", linestyle='--')
+    plt.plot(val_set_err, label="Validation set error")
     plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
                ncol=2, mode="expand", borderaxespad=0.)
     plt.show()
