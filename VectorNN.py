@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+from matplotlib.legend_handler import HandlerLine2D
 import csv
 import os
 import multiprocessing
@@ -9,10 +10,11 @@ import random
 
 class NN:
     def __init__(self, input_layer, hidden_layer, output_layer, iteration=1000, learning_rate=0.1, momentum=0.9,
-                 show_progress_err=False, bold_driver=True, early_stop=True, load_weight=False):
+                 show_progress_err=False, bold_driver=True, early_stop=True, load_weight=False, save_weight=False):
         self.input_layer, self.hidden_layer, self.output_layer = input_layer, hidden_layer, output_layer
         self.iteration, self.learning_rate, self.momentum = iteration, learning_rate, momentum
         self.bold_driver, self.early_stop = bold_driver, early_stop
+        self.save_weight = save_weight
         self.show_progress_err = show_progress_err
         self.weight = [[], []]
         self.weight_change = [[], []]
@@ -57,9 +59,9 @@ class NN:
         self.weight_change[0] = change
         return output_delta
 
-    def train(self, data_set, val_set_size=20):
-        train_set = data_set[:int(val_set_size / 100.0 * len(data_set))]
-        val_set = data_set[int(val_set_size / 100.0 * len(data_set)):]
+    def train(self, data_set, val_set_percent=20):
+        train_set = data_set[:int(val_set_percent / 100.0 * len(data_set))]
+        val_set = data_set[int(val_set_percent / 100.0 * len(data_set)):]
         train_err_arr, val_err_err = [], []
         for i in range(self.iteration):
             error = 0.0
@@ -78,15 +80,16 @@ class NN:
             train_err_arr.append(error[0])
             val_err_err.append(self.test(val_set))
             if self.early_stop and i > 0:
+                k = 10
                 pq = (100 * (val_err_err[-1] / np.min(val_err_err) - 1)) \
-                    / 1 * ((np.sum(train_err_arr[-10:]) / (10 * np.min(train_err_arr[-100:]))) - 1)
-                print "%d: %f " % (i, pq),
+                    / ((np.sum(train_err_arr[-k:]) / (k * np.min(train_err_arr[-k:]))) - 1)
                 if pq > 0:
-                    print "%d: %f " % (i, pq),
+                    pass
                     # break
             if self.show_progress_err:
                 print "error at " + str(i) + " iteration: " + str(error)
-        np.save("weight", self.weight)
+        if self.save_weight:
+            np.save("weight", self.weight)
         return train_err_arr, val_err_err
 
     def test(self, test_set):
@@ -146,27 +149,87 @@ class LR:
 def main():
     np.seterr(over='raise')
     data = read_data_set('CWDatav6.csv')
-    nn_learn_provider = lambda: NN(8, 5, 1, iteration=10000, bold_driver=True, early_stop=True)
-    multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
-    # nn_learn_provider = lambda: NN(8, 5, 1, iteration=2000, bold_driver=True, early_stop=False)
+
+    # test_bold_driver(data)
+
+    # nn_learn_provider = lambda: NN(8, 4, 1, iteration=1000, bold_driver=True, early_stop=True)
+    # multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 20), kwargs={"show_graph": True}).start()
+    # nn_learn_provider = lambda: NN(8, 4, 1, iteration=1000, bold_driver=True, early_stop=True)
+    # multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25), kwargs={"show_graph": True}).start()
+    # nn_learn_provider = lambda: NN(8, 6, 1, iteration=1000, bold_driver=True, early_stop=True)
     # multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
-    # nn_learn_provider = lambda: NN(8, 5, 1, iteration=10000, learning_rate=0.1, momentum=0.9, load_weight=False)
+    # nn_learn_provider = lambda: NN(8, 8, 1, iteration=1000, bold_driver=True, early_stop=True)
     # multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
-    # nn_learn_provider = lambda: NN(8, 5, 1, iteration=10000, learning_rate=0.1, momentum=0.9, load_weight=False)
+    # nn_learn_provider = lambda: NN(8, 10, 1, iteration=1000, bold_driver=True, early_stop=True)
     # multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
-    # nn_learn_provider = lambda: NN(8, 3, 1, iteration=10000, learning_rate=0.1, momentum=0.9, load_weight=False)
+    # nn_learn_provider = lambda: NN(8, 12, 1, iteration=1000, bold_driver=True, early_stop=True)
     # multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
-    # nn_learn_provider = lambda: NN(8, 3, 1, iteration=10000, learning_rate=0.1, momentum=0.9, load_weight=False)
+    # nn_learn_provider = lambda: NN(8, 14, 1, iteration=1000, bold_driver=True, early_stop=True)
+    # multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
+    # nn_learn_provider = lambda: NN(8, 16, 1, iteration=1000, bold_driver=True, early_stop=True)
     # multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data, 25)).start()
 
-    # lr_learn_provider = lambda: LR()
+    # nn_learn_provider = lambda: NN(8, 2, 1, iteration=1000, bold_driver=True, early_stop=True)
+    # multiprocessing.Process(target=k_fold_val, args=(nn_learn_provider, data, 3)).start()
+    # nn_learn_provider = lambda: NN(8, 4, 1, iteration=1000, bold_driver=True, early_stop=True)
+    # multiprocessing.Process(target=k_fold_val, args=(nn_learn_provider, data, 3)).start()
+    # nn_learn_provider = lambda: NN(8, 6, 1, iteration=1000, bold_driver=True, early_stop=True)
+    # multiprocessing.Process(target=k_fold_val, args=(nn_learn_provider, data, 3)).start()
+    # nn_learn_provider = lambda: NN(8, 8, 1, iteration=1000, bold_driver=True, early_stop=True)
+    # multiprocessing.Process(target=k_fold_val, args=(nn_learn_provider, data, 3)).start()
+    # nn_learn_provider = lambda: NN(8, 10, 1, iteration=1000, bold_driver=True, early_stop=True)
+    # multiprocessing.Process(target=k_fold_val, args=(nn_learn_provider, data, 3)).start()
+    # nn_learn_provider = lambda: NN(8, 12, 1, iteration=1000, bold_driver=True, early_stop=True)
+    # multiprocessing.Process(target=k_fold_val, args=(nn_learn_provider, data, 3)).start()
+    # nn_learn_provider = lambda: NN(8, 14, 1, iteration=1000, bold_driver=True, early_stop=True)
+    # multiprocessing.Process(target=k_fold_val, args=(nn_learn_provider, data, 3)).start()
+    # nn_learn_provider = lambda: NN(8, 16, 1, iteration=1000, bold_driver=True, early_stop=True)
+    # multiprocessing.Process(target=k_fold_val, args=(nn_learn_provider, data, 3)).start()
+
+    nn_learn_provider = lambda: NN(8, 5, 1, iteration=1000, bold_driver=True, early_stop=False)
+    multiprocessing.Process(target=k_fold_val, args=(nn_learn_provider, data, 3)).start()
+    nn_learn_provider = lambda: NN(8, 5, 1, iteration=1000, bold_driver=False, early_stop=False)
+    multiprocessing.Process(target=k_fold_val, args=(nn_learn_provider, data, 3)).start()
+    # nn_learn_provider = lambda: NN(8, 5, 1, iteration=1000, bold_driver=False, early_stop=True)
+    # multiprocessing.Process(target=k_fold_val, args=(nn_learn_provider, data, 3)).start()
+    # nn_learn_provider = lambda: NN(8, 5, 1, iteration=1000, bold_driver=False, early_stop=False)
+    # multiprocessing.Process(target=k_fold_val, args=(nn_learn_provider, data, 3)).start()
+
+
+    lr_learn_provider = lambda: LR()
+    k_fold_val(lr_learn_provider,data,fold=10)
     # multiprocessing.Process(target=split_set_val, args=(lr_learn_provider, data, 25)).start()
-
-    # split_set_val(nn_learn_provider, data, split_percent=25)
+    # for i in range(10):
+    #     nn_learn_provider = lambda: NN(8, 5, 1, iteration=1000, bold_driver=False, early_stop=True)
+    #     split_set_val(nn_learn_provider, data, split_percent=25)
     # k_fold_val(learn_provider, data, fold=10)
 
 
-def split_set_val(learn_provider, data_set, split_percent=25):
+def test_bold_driver(data):
+    jobs = []
+    manager = multiprocessing.Manager()
+    no_bold_list = manager.list()
+    yes_bold_list = manager.list()
+    for i in range(100):
+        nn_learn_provider = lambda: NN(8, 5, 1, iteration=1000, bold_driver=False, early_stop=True)
+        j1 = multiprocessing.Process(target=test_bold_driver_worker, args=(no_bold_list, nn_learn_provider, data, 25))
+        j1.start()
+        nn_learn_provider = lambda: NN(8, 5, 1, iteration=1000, bold_driver=False, early_stop=False)
+        j2 = multiprocessing.Process(target=test_bold_driver_worker, args=(yes_bold_list, nn_learn_provider, data, 25))
+        j2.start()
+        jobs.append(j1)
+        jobs.append(j2)
+    for j in jobs:
+        j.join()
+    print "without bold driver " + str(np.array(no_bold_list).mean())
+    print "with bold driver " + str(np.array(yes_bold_list).mean())
+
+
+def test_bold_driver_worker(err_list, learn_provider, data_set, split_percent=25):
+    err_list.append(split_set_val(learn_provider, data_set, split_percent))
+
+
+def split_set_val(learn_provider, data_set, split_percent=25, show_graph=False):
     random.seed()
     network = learn_provider()
     np.random.shuffle(data_set)
@@ -175,19 +238,20 @@ def split_set_val(learn_provider, data_set, split_percent=25):
     err = network.train(train_set)
     progress_err = err[0]
     val_err = err[1]
+    test_err = network.test(test_set)
     print str(network)
-    print "Error on test set:  " + str(network.test(test_set))
-    if len(progress_err) != 0:
-        # job_for_another_core = multiprocessing.Process(target=plot_learning_rate, args=(progress_err, "Train set"))
-        # job_for_another_core.start()
-        # job_for_another_core = multiprocessing.Process(target=plot_learning_rate, args=(val_err, "Validation set"))
-        # job_for_another_core.start()
-        job_for_another_core = multiprocessing.Process(target=plot_learning_rate, args=(progress_err, val_err))
-        job_for_another_core.start()
+    print "Error on test set:  " + str(test_err)
+    if show_graph:
+        if len(progress_err) != 0:
+            job_for_another_core = multiprocessing.Process(target=plot_learning_rate,
+                                                           args=(progress_err, val_err))
+            job_for_another_core.start()
+    return test_err
 
 
 def k_fold_val(learn_provider, data_set, fold=10):
     error = 0
+    np.random.shuffle(data_set)
     for i in range(0, fold):
         network = learn_provider()
         train_set = [data_set[index] for index in range(len(data_set)) if ((index - i) % fold) != 0]
@@ -198,16 +262,14 @@ def k_fold_val(learn_provider, data_set, fold=10):
     print "Average error on K-fold: " + str(error / fold)
 
 
-def plot_learning_rate(train_set_err, val_set_err):
-    # fig = plt.figure()
-    # ax = fig.add_subplot(1, 1, 1)
-    # ax.set_yscale('log')
+def plot_learning_rate(train_set_err, val_set_err, title="error against iteration"):
+    plt.title(title)
     plt.ylabel("Square error")
     plt.xlabel("Iteration")
-    plt.plot(train_set_err, label="Training set error")
-    plt.plot(val_set_err, label="Validation set error")
-    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
-               ncol=2, mode="expand", borderaxespad=0.)
+    train_line, = plt.plot(train_set_err, label="Training set error")
+    val_line, = plt.plot(val_set_err, label="Validation set error")
+    plt.legend(handler_map={train_line: HandlerLine2D(numpoints=4)})
+    plt.legend(handler_map={val_line: HandlerLine2D(numpoints=4)})
     plt.show()
 
 
