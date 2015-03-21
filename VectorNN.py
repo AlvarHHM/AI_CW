@@ -1,11 +1,6 @@
 import numpy as np
 import math
-import matplotlib.pyplot as plt
-from matplotlib.legend_handler import HandlerLine2D
-import csv
 import os
-import multiprocessing
-import random
 
 
 class NN:
@@ -99,6 +94,9 @@ class NN:
             err_arr.append(error)
         return math.sqrt(reduce(lambda x, y: x + y, err_arr) / len(err_arr))
 
+    def apply(self, data):
+        return self.forward(data)[2][0][0]
+
     def snapshot(self):
         self.backup_weight = self.weight
         self.backup_weight_change = self.weight_change
@@ -134,7 +132,7 @@ class LR:
         self.input_matrix = np.matrix([np.append([1, ], x[0]) for x in data_set])
         self.target_matrix = np.matrix([x[1] for x in data_set]).transpose()
         self.weight = (self.input_matrix.transpose() * self.input_matrix).getI() \
-                      * self.input_matrix.transpose() * self.target_matrix
+            * self.input_matrix.transpose() * self.target_matrix
         return []
 
     def test(self, data_set):
@@ -142,121 +140,9 @@ class LR:
         self.target_matrix = np.matrix([x[1] for x in data_set]).transpose()
         return math.sqrt((np.array(self.target_matrix - (self.input_matrix * self.weight)) ** 2).mean())
 
+    def apply(self, data):
+        input_matrix = np.append([1, ], data)
+        return (input_matrix * self.weight)[0, 0]
+
     def __str__(self):
         return "Linear Regression"
-
-
-def main():
-    np.seterr(over='raise')
-    data = read_data_set('CWDatav6.csv')
-
-    nn_learn_provider = lambda: NN(8, 6, 1, iteration=10000)
-    multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data), kwargs={"show_graph": True}).start()
-
-
-
-    lr_learn_provider = lambda: LR()
-    k_fold_val(lr_learn_provider, data, fold=10)
-    split_set_val(lr_learn_provider, data)
-    # multiprocessing.Process(target=split_set_val, args=(lr_learn_provider, data, 25)).start()
-    # for i in range(10):
-    #     nn_learn_provider = lambda: NN(8, 5, 1, iteration=1000, bold_driver=False, early_stop=True)
-    #     split_set_val(nn_learn_provider, data, split_percent=25)
-    # k_fold_val(learn_provider, data, fold=10)
-
-
-def test_bold_driver(data):
-    jobs = []
-    manager = multiprocessing.Manager()
-    no_bold_list = manager.list()
-    yes_bold_list = manager.list()
-    for i in range(100):
-        nn_learn_provider = lambda: NN(8, 5, 1, iteration=1000, bold_driver=False, early_stop=True)
-        j1 = multiprocessing.Process(target=test_bold_driver_worker, args=(no_bold_list, nn_learn_provider, data))
-        j1.start()
-        nn_learn_provider = lambda: NN(8, 5, 1, iteration=1000, bold_driver=False, early_stop=False)
-        j2 = multiprocessing.Process(target=test_bold_driver_worker, args=(yes_bold_list, nn_learn_provider, data))
-        j2.start()
-        jobs.append(j1)
-        jobs.append(j2)
-    for j in jobs:
-        j.join()
-    print "without bold driver " + str(np.array(no_bold_list).mean())
-    print "with bold driver " + str(np.array(yes_bold_list).mean())
-
-
-def test_bold_driver_worker(err_list, learn_provider, data_set, split_percent=20):
-    err_list.append(split_set_val(learn_provider, data_set, split_percent))
-
-
-def split_set_val(learn_provider, data_set, split_percent=20, show_graph=False):
-    random.seed()
-    network = learn_provider()
-    np.random.shuffle(data_set)
-    train_set = data_set[int(len(data_set) * (split_percent / 100.0)):]
-    test_set = data_set[:int(len(data_set) * (split_percent / 100.0))]
-    err = network.train(train_set)
-    if len(err) == 2:
-        progress_err = err[0]
-        val_err = err[1]
-    test_err = network.test(test_set)
-    print str(network)
-    print "Error on test set:  " + str(test_err)
-    if show_graph:
-        if len(progress_err) != 0:
-            job_for_another_core = multiprocessing.Process(target=plot_learning_rate,
-                                                           args=(progress_err, val_err))
-            job_for_another_core.start()
-    return test_err
-
-
-def k_fold_val(learn_provider, data_set, fold=10):
-    error = 0
-    np.random.shuffle(data_set)
-    for i in range(0, fold):
-        network = learn_provider()
-        train_set = [data_set[index] for index in range(len(data_set)) if ((index - i) % fold) != 0]
-        test_set = data_set[i::fold]
-        network.train(train_set)
-        error += network.test(test_set)
-    print str(network)
-    print "Average error on K-fold: " + str(error / fold)
-
-
-def plot_learning_rate(train_set_err, val_set_err, title="error against iteration"):
-    plt.title(title)
-    plt.ylabel("Square error")
-    plt.xlabel("Iteration")
-    train_line, = plt.plot(train_set_err, label="Training set error")
-    val_line, = plt.plot(val_set_err, label="Validation set error")
-    plt.legend(handler_map={train_line: HandlerLine2D(numpoints=4)})
-    plt.legend(handler_map={val_line: HandlerLine2D(numpoints=4)})
-    plt.show()
-
-
-def read_data_set(input_file):
-    data = []
-    with open(input_file, 'rbU') as csv_file:
-        reader = csv.reader(csv_file, dialect=csv.excel_tab)
-        for row in reader:
-            row_data = [float(x) for x in row[0].split(',')]
-            data.append((row_data[:-1], row_data[-1]))
-    return data
-
-
-def demo():
-    pat = [
-        [[0, 0], [0]],
-        [[0, 1], [1]],
-        [[1, 0], [1]],
-        [[1, 1], [0]]]
-
-    n = NN(2, 3, 1, iteration=1000)
-    # train it with some patterns
-    n.train(pat)
-    # test it
-    print n.test(pat)
-
-
-if __name__ == '__main__':
-    main()
