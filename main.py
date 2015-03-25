@@ -10,10 +10,17 @@ import random
 def main():
     np.seterr(over='raise')
     data = read_data_set('pre_processed_data.csv')
-    nn_learn_provider = lambda: NN(8, 6, 1, save_weight=True, iteration=10000)
-    split_set_val(nn_learn_provider, data)
-    # lr = lambda: LR()
-    # split_set_val(lr, data, show_result_graph=True)
+    # nn_learn_provider = lambda: NN(8, 6, 1, iteration=1000)
+    # multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data)).start()
+    nn = NN(8, 6, 1, load_weight=True)
+    # plot_learning_rate([nn.apply(x[0]) for x in sorted(data, key=lambda key: key[1])],
+    #                    [x[1] for x in sorted(data, key=lambda key: key[1])])
+    print nn.test(data)
+    nn = LR()
+    nn.train(data)
+    print nn.test(data)
+    # plot_learning_rate([nn.apply(x[0]) for x in sorted(data, key=lambda key: key[1])],
+    #                    [x[1] for x in sorted(data, key=lambda key: key[1])])
 
 
 def plot_result_graph(predicted_set, target_set):
@@ -69,7 +76,6 @@ def split_set_val(learn_provider, data_set, split_percent=20, show_process_graph
         job_result_graph = multiprocessing.Process(target=plot_result_graph,
                                                    args=(predicted, target))
         job_result_graph.start()
-
     return test_err
 
 

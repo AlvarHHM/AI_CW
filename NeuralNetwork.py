@@ -76,7 +76,7 @@ class NN:
             train_err_arr.append(error[0])
             val_err_err.append(self.test(val_set)[0])
             if self.early_stop is not False and i > 0:
-                k = 10
+                k = 100
                 gl = (100 * (val_err_err[-1] / np.min(val_err_err) - 1))
                 p = 1000 * ((np.sum(train_err_arr[-k:]) / (k * np.min(train_err_arr[-k:]))) - 1)
                 pq = gl / p
