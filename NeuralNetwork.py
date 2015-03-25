@@ -98,11 +98,6 @@ class NN:
         ce = 1 - (np.sum(squard_err_arr) / np.sum([(target - np.mean(target_set)) ** 2 for inputs, target in test_set]))
         rsqr_numerator = np.sum([(target - np.mean(target_set)) * (self.apply(inputs) - mean_predict_target_set)
                                  for inputs, target in test_set])
-        # rsqr_numerator = np.sum([(target - np.mean(target_set)) for inputs, target in test_set]) \
-        #     * np.sum([(self.forward(inputs)[2][0] - mean_predict_target_set) for inputs, target in test_set])
-        # rsqr_denominator = math.sqrt(np.sum([(target - np.mean(target_set)) ** 2
-        #                                      * (self.forward(inputs)[2][0] - mean_predict_target_set) ** 2
-        #                                      for inputs, target in test_set]))
         rsqr_denominator = math.sqrt(np.sum([(target - np.mean(target_set)) ** 2 for inputs, target in test_set])) \
             * math.sqrt(np.sum([(self.apply(inputs) - mean_predict_target_set) ** 2
                                 for inputs, target in test_set]))
@@ -161,11 +156,6 @@ class LR:
         ce = 1 - (np.sum(squard_err_arr) / np.sum([(target - np.mean(target_set)) ** 2 for inputs, target in test_set]))
         rsqr_numerator = np.sum([(target - np.mean(target_set)) * (self.apply(inputs) - mean_predict_target_set)
                                  for inputs, target in test_set])
-        # rsqr_numerator = np.sum([(target - np.mean(target_set)) for inputs, target in test_set]) \
-        #     * np.sum([(self.forward(inputs)[2][0] - mean_predict_target_set) for inputs, target in test_set])
-        # rsqr_denominator = math.sqrt(np.sum([(target - np.mean(target_set)) ** 2
-        #                                      * (self.forward(inputs)[2][0] - mean_predict_target_set) ** 2
-        #                                      for inputs, target in test_set]))
         rsqr_denominator = math.sqrt(np.sum([(target - np.mean(target_set)) ** 2 for inputs, target in test_set])) \
             * math.sqrt(np.sum([(self.apply(inputs) - mean_predict_target_set) ** 2
                                 for inputs, target in test_set]))
