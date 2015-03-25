@@ -1,6 +1,7 @@
-import numpy as np
 import math
 import os
+
+import numpy as np
 
 
 class NN:
@@ -73,7 +74,7 @@ class NN:
                     self.learning_rate *= 1.1
                     self.snapshot()
             train_err_arr.append(error[0])
-            val_err_err.append(self.test(val_set))
+            val_err_err.append(self.test(val_set)[0])
             if self.early_stop is not False and i > 0:
                 k = 10
                 gl = (100 * (val_err_err[-1] / np.min(val_err_err) - 1))
@@ -88,11 +89,26 @@ class NN:
         return train_err_arr, val_err_err
 
     def test(self, test_set):
-        err_arr = []
-        for datum in test_set:
-            error = (datum[1] - self.forward(datum[0])[2][0]) ** 2
-            err_arr.append(error)
-        return math.sqrt(reduce(lambda x, y: x + y, err_arr) / len(err_arr))
+        n = len(test_set)
+        target_set = map(lambda x: x[1], test_set)
+        mean_predict_target_set = np.mean([self.apply(inputs) for inputs, target in test_set])
+        squard_err_arr = [(target - self.apply(inputs)) ** 2 for inputs, target in test_set]
+        rmse = math.sqrt(sum(squard_err_arr) / n)
+        msre = np.sum([((self.apply(inputs) - target) / target) ** 2 for inputs, target in test_set]) / n
+        ce = 1 - (np.sum(squard_err_arr) / np.sum([(target - np.mean(target_set)) ** 2 for inputs, target in test_set]))
+        rsqr_numerator = np.sum([(target - np.mean(target_set)) * (self.apply(inputs) - mean_predict_target_set)
+                                 for inputs, target in test_set])
+        # rsqr_numerator = np.sum([(target - np.mean(target_set)) for inputs, target in test_set]) \
+        #     * np.sum([(self.forward(inputs)[2][0] - mean_predict_target_set) for inputs, target in test_set])
+        # rsqr_denominator = math.sqrt(np.sum([(target - np.mean(target_set)) ** 2
+        #                                      * (self.forward(inputs)[2][0] - mean_predict_target_set) ** 2
+        #                                      for inputs, target in test_set]))
+        rsqr_denominator = math.sqrt(np.sum([(target - np.mean(target_set)) ** 2 for inputs, target in test_set])) \
+            * math.sqrt(np.sum([(self.apply(inputs) - mean_predict_target_set) ** 2
+                                for inputs, target in test_set]))
+
+        rsqr = (rsqr_numerator / rsqr_denominator)
+        return rmse, msre, ce, rsqr
 
     def apply(self, data):
         return self.forward(data)[2][0][0]
@@ -132,13 +148,30 @@ class LR:
         self.input_matrix = np.matrix([np.append([1, ], x[0]) for x in data_set])
         self.target_matrix = np.matrix([x[1] for x in data_set]).transpose()
         self.weight = (self.input_matrix.transpose() * self.input_matrix).getI() \
-            * self.input_matrix.transpose() * self.target_matrix
+                      * self.input_matrix.transpose() * self.target_matrix
         return []
 
-    def test(self, data_set):
-        self.input_matrix = np.matrix([np.append([1, ], x[0]) for x in data_set])
-        self.target_matrix = np.matrix([x[1] for x in data_set]).transpose()
-        return math.sqrt((np.array(self.target_matrix - (self.input_matrix * self.weight)) ** 2).mean())
+    def test(self, test_set):
+        n = len(test_set)
+        target_set = map(lambda x: x[1], test_set)
+        mean_predict_target_set = np.mean([self.apply(inputs) for inputs, target in test_set])
+        squard_err_arr = [(target - self.apply(inputs)) ** 2 for inputs, target in test_set]
+        rmse = math.sqrt(sum(squard_err_arr) / n)
+        msre = np.sum([((self.apply(inputs) - target) / target) ** 2 for inputs, target in test_set]) / n
+        ce = 1 - (np.sum(squard_err_arr) / np.sum([(target - np.mean(target_set)) ** 2 for inputs, target in test_set]))
+        rsqr_numerator = np.sum([(target - np.mean(target_set)) * (self.apply(inputs) - mean_predict_target_set)
+                                 for inputs, target in test_set])
+        # rsqr_numerator = np.sum([(target - np.mean(target_set)) for inputs, target in test_set]) \
+        #     * np.sum([(self.forward(inputs)[2][0] - mean_predict_target_set) for inputs, target in test_set])
+        # rsqr_denominator = math.sqrt(np.sum([(target - np.mean(target_set)) ** 2
+        #                                      * (self.forward(inputs)[2][0] - mean_predict_target_set) ** 2
+        #                                      for inputs, target in test_set]))
+        rsqr_denominator = math.sqrt(np.sum([(target - np.mean(target_set)) ** 2 for inputs, target in test_set])) \
+            * math.sqrt(np.sum([(self.apply(inputs) - mean_predict_target_set) ** 2
+                                for inputs, target in test_set]))
+
+        rsqr = (rsqr_numerator / rsqr_denominator)
+        return rmse, msre, ce, rsqr
 
     def apply(self, data):
         input_matrix = np.append([1, ], data)
