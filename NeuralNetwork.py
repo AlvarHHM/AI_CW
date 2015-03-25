@@ -74,7 +74,7 @@ class NN:
                     self.learning_rate *= 1.1
                     self.snapshot()
             train_err_arr.append(error[0])
-            val_err_err.append(self.test(val_set)[0])
+            val_err_err.append(self.test_square_error(val_set)[0])
             if self.early_stop is not False and i > 0:
                 k = 100
                 gl = (100 * (val_err_err[-1] / np.min(val_err_err) - 1))
@@ -87,6 +87,12 @@ class NN:
         if self.save_weight:
             np.save("weight", self.weight)
         return train_err_arr, val_err_err
+
+    def test_square_error(self, test_set):
+        n = len(test_set)
+        squard_err_arr = [(target - self.apply(inputs)) ** 2 for inputs, target in test_set]
+        rmse = math.sqrt(sum(squard_err_arr) / n)
+        return [rmse, ]
 
     def test(self, test_set):
         n = len(test_set)

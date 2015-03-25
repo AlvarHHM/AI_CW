@@ -12,15 +12,8 @@ def main():
     data = read_data_set('pre_processed_data.csv')
     # nn_learn_provider = lambda: NN(8, 6, 1, iteration=1000)
     # multiprocessing.Process(target=split_set_val, args=(nn_learn_provider, data)).start()
-    nn = NN(8, 6, 1, load_weight=True)
-    # plot_learning_rate([nn.apply(x[0]) for x in sorted(data, key=lambda key: key[1])],
-    #                    [x[1] for x in sorted(data, key=lambda key: key[1])])
-    print nn.test(data)
-    nn = LR()
-    nn.train(data)
-    print nn.test(data)
-    # plot_learning_rate([nn.apply(x[0]) for x in sorted(data, key=lambda key: key[1])],
-    #                    [x[1] for x in sorted(data, key=lambda key: key[1])])
+    nn_learn_provider = lambda: NN(8, 6, 1, iteration=10000)
+    split_set_val(nn_learn_provider, data, write_result=True)
 
 
 def plot_result_graph(predicted_set, target_set):
@@ -43,15 +36,15 @@ def plot_result_graph(predicted_set, target_set):
     plt.show()
 
 
-def write_result(learn_provider, data):
-    learner = learn_provider()
-    with open('result.csv', 'wb') as csv_file:
+def write_csv_result(learner, data, name="result.csv"):
+    with open(name, 'wb') as csv_file:
         writer = csv.writer(csv_file)
         for row in data:
             writer.writerow([row[1], learner.apply(row[0])])
 
 
-def split_set_val(learn_provider, data_set, split_percent=20, show_process_graph=False, show_result_graph=False):
+def split_set_val(learn_provider, data_set, split_percent=20,
+                  show_process_graph=False, show_result_graph=False, write_result=False):
     random.seed()
     network = learn_provider()
     np.random.shuffle(data_set)
@@ -76,6 +69,8 @@ def split_set_val(learn_provider, data_set, split_percent=20, show_process_graph
         job_result_graph = multiprocessing.Process(target=plot_result_graph,
                                                    args=(predicted, target))
         job_result_graph.start()
+    if write_result:
+        write_csv_result(network, test_set, name="result-"+str(test_err[0])+".csv")
     return test_err
 
 
